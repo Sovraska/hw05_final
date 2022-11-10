@@ -1,6 +1,7 @@
 {% load thumbnail %}
 
 {% if post.is_published %}
+    {% load user_filters %}
     <article>
       <div class="list-group">
         <li class="list-group-item">
@@ -22,7 +23,7 @@
             {% endthumbnail %}
           {% autoescape on %}
             <p>
-              {{ post.text|linebreaksbr|truncatechars:500 }}
+              {{ post.text|linebreaksbr }}
               <a href="{% url 'posts:post_detail' post.id %}" class="list-group-item-action">Читать далее </a>
             </p>
           {% endautoescape %}
