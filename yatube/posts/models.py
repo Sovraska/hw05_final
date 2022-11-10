@@ -45,6 +45,10 @@ class Post(CreatedModel):
         blank=True,
         verbose_name='Картинка',
     )
+    is_published = models.BooleanField(
+        default=False
+    )
+
 
     def __str__(self):
         _text_limit = 15

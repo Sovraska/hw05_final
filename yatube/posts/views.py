@@ -82,6 +82,7 @@ def create_post(request):
     if form.is_valid():
         obj = form.save(commit=False)
         obj.author = request.user
+        obj.is_published = False
         obj.save()
         return redirect("posts:profile", request.user)
 
@@ -108,7 +109,9 @@ def post_edit(request, post_id):
     )
 
     if form.is_valid():
-        form.save()
+        obj = form.save(commit=False)
+        obj.is_published = False
+        obj.save()
         return redirect('posts:post_detail', post_id=post_id)
 
     context = {
