@@ -1,16 +1,17 @@
 import shutil
 import tempfile
-from http import HTTPStatus
 
 from django import forms
 from django.conf import settings
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.shortcuts import get_object_or_404
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from posts.forms import PostForm
-from posts.models import Follow, Group, Post, User
+from posts.models import Follow, Group, Post, User, Comment
+
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
@@ -63,9 +64,7 @@ class PostViewTests(TestCase):
         # Авторизуем пользователя2
         self.authorized_client2.force_login(self.user2)
         # выборка всей ленты новостей
-        author_querry = Follow.objects.filter(user=self.user)
-        author_values_list = author_querry.values_list('author')
-        self.post_list = Post.objects.filter(author_id__in=author_values_list)
+        self.post_list = Post.objects.filter(author__following__user=self.user).all()
         # добавление подписки
         self.follow = Follow.objects.create(
             user=self.user,
@@ -208,23 +207,29 @@ class PostViewTests(TestCase):
         комментарий появляется на странице поста
         комментировать посты может только авторизованный пользователь
         """
-        url = reverse('posts:add_comment', args=[self.post.pk])
-        response = self.authorized_client.get(url,)
+        tasks_count = Post.objects.count()
+        form_data = {
+            'post': self.post,
+            'author': self.post.author,
+            'text': 'Тестовый текст комментария'
+        }
 
-        if self.post.author == self.authorized_client:
-            self.assertEqual(response.status_code, HTTPStatus.OK)
+        response = self.authorized_client.post(
+            reverse('posts:add_comment', args=[self.post.pk]),
+            data=form_data
+        )
 
-        elif self.user == self.authorized_client:
-            self.assertRedirects(response, url)
+        self.assertEqual(Post.objects.count(), tasks_count)
+        # Проверяем, сработал ли редирект
+        self.assertRedirects(
+            response,
+            reverse('posts:post_detail', args=[self.post.pk])
+        )
 
-        else:
-            response = self.guest_client.get(url)
-            self.assertRedirects(
-                response, reverse(
-                    'users:login'
-                ) + "?next=" + reverse(
-                    'posts:add_comment', args=[self.post.pk])
-            )
+        last_comment = get_object_or_404(Comment, post=self.post)
+        self.assertEqual(last_comment.post, self.post)
+        self.assertEqual(last_comment.author, self.post.author)
+        self.assertEqual(last_comment.text, 'Тестовый текст комментария')
 
     def test_post_right_group_exists(self):
         """Проверка Создания Поста ,

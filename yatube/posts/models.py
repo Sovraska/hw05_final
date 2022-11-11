@@ -63,16 +63,12 @@ class Post(CreatedModel):
 class Comment(models.Model):
     post = models.ForeignKey(
         Post,
-        blank=True,
-        null=True,
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         related_name='comments',
         verbose_name='пост',
     )
     author = models.ForeignKey(
         User,
-        blank=True,
-        null=True,
         on_delete=models.CASCADE,
         related_name='comments',
         verbose_name='Автор'
@@ -89,8 +85,7 @@ class Comment(models.Model):
     )
 
     def __str__(self):
-        _text_limit = 15
-        return self.text[:_text_limit]
+        return self.text
 
     class Meta:
         verbose_name = 'Коммент'
